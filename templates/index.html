@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+            crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&family=Poppins:wght@300;600&display=swap"
+          rel="stylesheet">
+    <title>오늘의 노래를 담아 보세요!</title>
+    <style>
+        * {
+            font-family: 'Nanum Gothic', sans-serif;
+            background-color: #212429;
+        }
+
+        #song-table {
+            width: 50%;
+        }
+
+        #pick-table {
+            width: 50%;
+        }
+
+        .wrap {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .post-btn {
+            padding: 0;
+            width: 150px;
+            height: 150px;
+            border: none;
+            border-radius: 100px;
+            outline: none;
+            background: lightgreen;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+            font-size: 50px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+
+        .del-btn {
+            padding: 0;
+            width: 150px;
+            height: 150px;
+            border: none;
+            border-radius: 100px;
+            outline: none;
+            background: indianred;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+            font-size: 50px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+
+        .btns {
+            position: absolute;
+            position: fixed;
+            bottom: 35px;
+            right: 10px;
+            z-index: 2;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            background-color: transparent;
+        }
+
+        #pick-table {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 1;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            listing();
+            posting();
+        });
+
+        function listing() {
+            $.ajax({
+                type: 'GET',
+                url: '/song',
+                data: {},
+                success: function (response) {
+                    let rows = response['songs']
+                    for (let i = 0; i < rows.length; i++) {
+                        let artist = rows[i]['artist']
+                        let image = rows[i]['image']
+                        let rank = rows[i]['rank']
+                        let title = rows[i]['title']
+                        let temp_html = `<tr>
+                                             <th scope="row">${rank}</th>
+                                             <td>${title}</td>
+                                             <td>${artist}</td>
+                                             <td><img src="${image}"></td>
+                                             <td class="dev_data_wrap">
+                                                <input  class="list-check-input" type="checkbox" value="${rank}" name="songs">
+                                             </td>
+                                        </tr>`;
+
+
+                        $('#song-list').append(temp_html);
+                        $('#song-list .list-check-input:last').data('songs', rows[i]);
+                    }
+                }
+            })
+        }
+
+        function posting() {
+            let arr = []
+            const song = $('input[name=songs]')
+            for ( let i = 0; i < song.length; i++ ){
+                if(song[i].checked == true) {
+                    arr.push($(song[i]).data('songs'));
+                    song[i].checked = false;
+                }
+            }
+
+            $.ajax({
+                type: 'POST',
+                url: '/song',
+                data: JSON.stringify({result_give: arr}),
+                success: function (response) {
+                    $('#pick-list').empty();
+                    let rows = response['songs']
+                    for (let i = 0; i < rows.length; i++) {
+                        let artist = rows[i]['artist']
+                        let image = rows[i]['image']
+                        let rank = rows[i]['rank']
+                        let title = rows[i]['title']
+                        let temp_html = `<tr>
+                                             <th scope="row">${rank}</th>
+                                             <td>${title}</td>
+                                             <td>${artist}</td>
+                                             <td><img src="${image}"></td>
+                                             <td>
+                                             <input  class="pick-check-input" type="checkbox" value="${rank}" name="picks">
+                                             </td>
+                                        </tr>`;
+                        $('#pick-list').append(temp_html);
+                        $('#pick-list .pick-check-input:last').data('songs', rows[i]);
+                    }
+                }
+            })
+        }
+
+        function deleting() {
+            let arr = []
+            const song = $('input[name=picks]')
+            for ( let i = 0; i < song.length; i++ ){
+                if(song[i].checked == true) {
+                    arr.push($(song[i]).data('songs'));
+                    song[i].checked = false;
+                }
+            }
+            $.ajax({
+                type: 'POST',
+                url: '/song/delete',
+                data: JSON.stringify({result_give: arr}),
+                success: function (response) {
+                    console.log(response['msg'])
+                    posting();
+                }
+            })
+
+        }
+    </script>
+</head>
+<body>
+<div class="wrap">
+    <table id="song-table" class="table table-dark table-hover">
+        <thead>
+        <tr>
+            <th scope="col">Rank</th>
+            <th scope="col">Title</th>
+            <th scope="col">Artist</th>
+            <th scope="col">Album</th>
+            <th scope="col">Checked</th>
+        </tr>
+        </thead>
+        <tbody id="song-list">
+
+        </tbody>
+    </table>
+    <div class="btns">
+        <div onclick="posting()" class="post-btn">담기</div>
+        <div onclick="deleting()" class="del-btn">삭제</div>
+    </div>
+    <table id="pick-table" class="table table-dark table-hover">
+        <thead>
+        <tr>
+            <th scope="col">Rank</th>
+            <th scope="col">Title</th>
+            <th scope="col">Artist</th>
+            <th scope="col">Album</th>
+            <th scope="col">Checked</th>
+        </tr>
+        </thead>
+        <tbody id="pick-list">
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
